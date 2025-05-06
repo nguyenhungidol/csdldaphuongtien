@@ -91,4 +91,4 @@ if __name__ == "__main__":
     df["filename"] = image_names
 
     df.to_csv("features.csv", index=False, encoding="utf-8")
-    print("✅ Đã trích xuất đặc trưng (color + HOG + edge) và lưu vào 'features.csv'")
+    print("✅ Đã trích xuất đặc trưng (color + HOG + edg) và lưu vào 'features.csv'")

@@ -51,7 +51,6 @@ def extract_hog_feature(image_path):
     )
     return features
 
-
 def extract_edge_feature(image_path):
     image = cv2.imread(image_path)
     if image is None:
