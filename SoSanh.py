@@ -68,6 +68,7 @@ def extract_features(image_path):
     color_feat = extract_color_feature(image_path)
     hog_feat = extract_hog_feature(image_path)
     edge_feat = extract_edge_feature(image_path)
+    
     if color_feat is None or hog_feat is None or edge_feat is None:
         raise ValueError(f"Không thể trích xuất đặc trưng từ ảnh {image_path}")
     return np.concatenate([color_feat, hog_feat, edge_feat])

@@ -39,7 +39,7 @@ def extract_hog_feature(image):
     return hog_feat
 
 
-# Biên Canny
+# Trích xuất đặc trưng cạnh Canny
 def extract_edge_feature(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     edges = cv2.Canny(gray, 100, 200)
@@ -91,4 +91,4 @@ if __name__ == "__main__":
     df["filename"] = image_names
 
     df.to_csv("features.csv", index=False, encoding="utf-8")
-    print("✅ Đã trích xuất đặc trưng (color + HOG + edg) và lưu vào 'features.csv'")
+    print("✅ Đã trích xuất đặc trưng (color + hog + edg) và lưu vào 'features.csv'")
