@@ -1,17 +1,15 @@
 import cv2
 import os
 import numpy as np
-import pandas as pd
+import json
 from tqdm import tqdm
 from skimage.feature import hog
-from skimage.color import rgb2gray
+import mysql.connector
 
 
-# --- Trích xuất đặc trưng màu HSV ---
 def extract_color_feature(image):
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     hsv = cv2.GaussianBlur(hsv, (5, 5), 0)
-
     h, s, v = cv2.split(hsv)
 
     h_hist = cv2.calcHist([h], [0], None, [64], [0, 180])
@@ -25,7 +23,6 @@ def extract_color_feature(image):
     return np.concatenate([h_hist, s_hist, v_hist])
 
 
-# --- Trích xuất đặc trưng HOG ---
 def extract_hog_feature(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     hog_feat = hog(
@@ -39,7 +36,6 @@ def extract_hog_feature(image):
     return hog_feat
 
 
-# Trích xuất đặc trưng cạnh Canny
 def extract_edge_feature(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     edges = cv2.Canny(gray, 100, 200)
@@ -48,47 +44,45 @@ def extract_edge_feature(image):
     return edge_hist
 
 
-# --- Kết hợp tất cả đặc trưng ---
-def extract_combined_features(image_path):
-    image = cv2.imread(image_path)
-    if image is None:
-        print(f"Lỗi: Không thể đọc ảnh {image_path}")
-        return None
-
-    # Resize ảnh về cùng kích thước nếu cần
-    image = cv2.resize(image, (128, 128))
-
+def extract_combined_features(image):
     color_feat = extract_color_feature(image)
     hog_feat = extract_hog_feature(image)
     edge_feat = extract_edge_feature(image)
-
-    combined_feat = np.concatenate([color_feat, hog_feat, edge_feat])
-    return combined_feat
+    return np.concatenate([color_feat, hog_feat, edge_feat])
 
 
-# --- Quét folder để trích xuất đặc trưng ---
+def insert_into_mysql(filename, feature_vector):
+    try:
+        conn = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="hung123321@",
+            database="dapt",
+        )
+        cursor = conn.cursor()
+        vector_str = json.dumps(feature_vector.tolist())
+        sql = "INSERT INTO image_features (filename, features) VALUES (%s, %s)"
+        cursor.execute(sql, (filename, vector_str))
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print("❌ Lỗi lưu MySQL:", e)
+
+
 def extract_features_from_folder(folder_path):
-    features = []
-    image_names = []
-
     for filename in tqdm(os.listdir(folder_path)):
-        if filename.lower().endswith((".png", ".jpg", ".jpeg")):
+        if filename.lower().endswith((".jpg", ".jpeg", ".png")):
             path = os.path.join(folder_path, filename)
-            feature = extract_combined_features(path)
-            if feature is not None:
-                features.append(feature)
-                image_names.append(filename)
+            image = cv2.imread(path)
+            if image is None:
+                continue
+            image = cv2.resize(image, (128, 128))
+            features = extract_combined_features(image)
+            insert_into_mysql(filename, features)
 
-    return features, image_names
 
-
-# --- Main ---
 if __name__ == "__main__":
-    folder_path = "Final"  # Thư mục chứa ảnh
-    features, image_names = extract_features_from_folder(folder_path)
-
-    df = pd.DataFrame(features)
-    df["filename"] = image_names
-
-    df.to_csv("features.csv", index=False, encoding="utf-8")
-    print("✅ Đã trích xuất đặc trưng (color + hog + edg) và lưu vào 'features.csv'")
+    folder_path = "Final"
+    extract_features_from_folder(folder_path)
+    print("✅ Đã lưu đặc trưng vào MySQL.")
